@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ski Terrain Renderer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #87CEEB;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        select, input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <h3>Loading Terrain Data...</h3>
+            <p>Generating realistic ski slope terrain</p>
+        </div>
+        
+        <div id="ui">
+            <h3>🎿 Ski Terrain Renderer</h3>
+            
+            <div class="control-group">
+                <label>Ski Resort:</label>
+                <select id="resortSelect">
+                    <option value="chamonix">Chamonix, France</option>
+                    <option value="whistler">Whistler, Canada</option>
+                    <option value="zermatt">Zermatt, Switzerland</option>
+                    <option value="stanton">St. Anton, Austria</option>
+                    <option value="valdisere">Val d'Isère, France</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Terrain Detail:</label>
+                <input type="range" id="detailSlider" min="32" max="256" value="128" step="32">
+                <span id="detailValue">128x128</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Snow Conditions:</label>
+                <select id="snowConditions">
+                    <option value="powder">Fresh Powder</option>
+                    <option value="packed">Packed Powder</option>
+                    <option value="groomed">Groomed</option>
+                    <option value="icy">Icy</option>
+                    <option value="spring">Spring Snow</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Weather:</label>
+                <select id="weather">
+                    <option value="sunny">Sunny</option>
+                    <option value="cloudy">Cloudy</option>
+                    <option value="snowing">Snowing</option>
+                    <option value="foggy">Foggy</option>
+                </select>
+            </div>
+            
+            <button id="generateTerrain">Generate Terrain</button>
+            <button id="resetCamera">Reset View</button>
+        </div>
+        
+        <div id="info">
+            <div>Camera: <span id="cameraPos">0, 0, 0</span></div>
+            <div>Elevation: <span id="elevation">0m</span></div>
+            <div>Slope: <span id="slope">0°</span></div>
+            <div>FPS: <span id="fps">60</span></div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="mcp_client.js"></script>
+    <script src="js/topography.js"></script>
+    <script src="js/materials.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

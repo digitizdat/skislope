@@ -1,0 +1,24 @@
+# Core dependencies for Ski! 3D Alpine Ski Terrain Rendering System
+# Note: This project uses uv for dependency management via pyproject.toml
+# This file is maintained for compatibility with pip-based installations
+
+# MCP (Model Context Protocol) for elevation data agents
+# Optional - project includes mock classes for development without MCP SDK
+mcp>=1.0.0
+
+# Testing framework and plugins
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.10.0
+
+# Code formatting and linting
+ruff>=0.1.0
+
+# Optional: For full MCP server functionality
+# Uncomment if you want to use the complete MCP SDK
+# mcp-server>=1.0.0
+
+# Note: No additional dependencies required for:
+# - HTTP server (uses built-in http.server)
+# - 3D rendering (uses WebGL in browser)
+# - External APIs (uses built-in urllib)

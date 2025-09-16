@@ -1,0 +1,80 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedVariables": "warn",
+        "useValidForDirection": "error"
+      },
+      "security": {
+        "noGlobalEval": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noImplicitAnyLet": "warn"
+      },
+      "style": {
+        "useConst": "warn",
+        "useTemplate": "warn"
+      },
+      "complexity": {
+        "noForEach": "off",
+        "useLiteralKeys": "warn"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto"
+  },
+  "javascript": {
+    "globals": [
+      "THREE",
+      "MCPElevationClient",
+      "MaterialSystem",
+      "TerrainRenderer", 
+      "CameraController",
+      "WeatherSystem",
+      "TopographyDataLoader",
+      "SkiTerrainApp",
+      "jest",
+      "describe",
+      "test",
+      "expect",
+      "beforeEach",
+      "afterEach"
+    ],
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteStyle": "single",
+      "attributePosition": "auto"
+    }
+  },
+  "files": {
+    "includes": [
+      "**/js/**/*.js",
+      "**/mcp_client.js",
+      "**/tests/js/**/*.js",
+      "**/*.js",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/build/**",
+      "!**/.git/**"
+    ]
+  }
+}

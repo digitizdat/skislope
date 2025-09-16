@@ -1,0 +1,47 @@
+# <type>[optional scope]: <description>
+#
+# [optional body]
+#
+# [optional footer(s)]
+
+# --- CONVENTIONAL COMMITS GUIDELINES ---
+# Types:
+#   feat:     A new feature
+#   fix:      A bug fix
+#   docs:     Documentation only changes
+#   style:    Changes that do not affect the meaning of the code (white-space, formatting, etc)
+#   refactor: A code change that neither fixes a bug nor adds a feature
+#   perf:     A code change that improves performance
+#   test:     Adding missing tests or correcting existing tests
+#   build:    Changes that affect the build system or external dependencies
+#   ci:       Changes to CI configuration files and scripts
+#   chore:    Other changes that don't modify src or test files
+#   revert:   Reverts a previous commit
+#
+# Scopes (optional):
+#   js:       JavaScript frontend code
+#   py:       Python backend/MCP code
+#   test:     Testing related changes
+#   docs:     Documentation changes
+#   config:   Configuration changes
+#   terrain:  Terrain rendering system
+#   mcp:      MCP client/server
+#   ui:       User interface
+#
+# Examples:
+#   feat(terrain): add real elevation data integration
+#   fix(mcp): resolve undefined class reference error
+#   test(js): add integration tests for runtime error detection
+#   docs: update testing documentation with Biome integration
+#   style(js): format code with Biome
+#   refactor(terrain): extract elevation data processing
+#   perf(js): optimize terrain rendering performance
+#   build: add Biome static analysis to workflow
+#
+# Breaking Changes:
+#   Add "BREAKING CHANGE:" in footer or "!" after type/scope
+#   Example: feat(mcp)!: change elevation data API format
+#
+# References:
+#   Close issues: "Closes #123"
+#   Reference issues: "Refs #123"

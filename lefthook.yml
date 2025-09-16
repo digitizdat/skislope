@@ -1,0 +1,38 @@
+# Lefthook configuration for Ski! 3D Alpine Ski Terrain Rendering System
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    code-quality:
+      run: npm run check
+      fail_text: "Code quality check failed. Run 'npm run check:fix' to auto-fix issues."
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no -- commitlint --edit {1}
+      fail_text: "Commit message doesn't follow Conventional Commits format. See .gitmessage for examples."
+
+pre-push:
+  commands:
+    tests:
+      run: npm test
+      fail_text: "Tests failed. Fix failing tests before pushing."
+    
+    e2e-tests:
+      run: npm run test:e2e
+      fail_text: "E2E tests failed. Check browser automation tests."
+      
+    python-tests:
+      run: pytest
+      fail_text: "Python tests failed. Check MCP server tests."
+
+# Skip hooks for specific scenarios
+skip_output:
+  - meta
+  - summary
+
+# Colors for better UX
+colors: true

@@ -1,0 +1,92 @@
+[project]
+name = "ski2"
+version = "0.1.0"
+description = "3D Alpine Ski Terrain Rendering System with Real Topographical Data"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Ski Terrain Rendering Team"},
+]
+keywords = ["ski", "terrain", "3d-rendering", "mcp", "topography", "alpine"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment :: Simulation",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+]
+requires-python = ">=3.11"
+dependencies = [
+    # MCP SDK is optional - project includes mock classes for development
+    # "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+# Core development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.10.0",
+    "ruff>=0.1.0",
+]
+
+# JavaScript testing dependencies
+js-test = [
+    "nodejs>=18.0.0",  # Node.js for running Jest
+]
+
+# Full MCP functionality (optional)
+mcp = [
+    "mcp>=1.0.0",
+]
+
+# All optional dependencies
+all = [
+    "ski2[dev,mcp]",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/ski2"
+Repository = "https://github.com/your-org/ski2"
+Documentation = "https://github.com/your-org/ski2/blob/main/README.md"
+"Bug Tracker" = "https://github.com/your-org/ski2/issues"
+
+[project.scripts]
+ski-elevation-server = "mcp.elevation.server:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+fix = true
+show-fixes = true
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ski2"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
