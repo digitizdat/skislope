@@ -4,10 +4,10 @@ This module provides real topographical elevation data through a Model Context P
 server, integrating with multiple external APIs for comprehensive terrain data.
 """
 
-from .server import ElevationDataProvider, server, elevation_provider
+from .server import ElevationDataProvider, elevation_provider, server
 
 __all__ = [
-    "ElevationDataProvider", 
+    "ElevationDataProvider",
     "server",
     "elevation_provider",
 ]

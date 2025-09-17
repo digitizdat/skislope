@@ -1,10 +1,11 @@
 """Unit tests for ElevationDataProvider class."""
 
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
-from mcp.elevation.server import ElevationDataProvider
+from skislope_mcp.elevation.server import ElevationDataProvider
 
 
 class TestElevationDataProvider:
@@ -44,9 +45,9 @@ class TestElevationDataProvider:
             ]
         }).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         result = await elevation_provider.fetch_elevation_grid("test_resort", 2, 1000)
-        
+
         assert result is not None
         assert len(result) == 4
 
@@ -54,7 +55,7 @@ class TestElevationDataProvider:
     async def test_fetch_elevation_grid_invalid_resort(self, elevation_provider):
         """Test elevation grid fetching for invalid resort."""
         result = await elevation_provider.fetch_elevation_grid("nonexistent_resort", 2, 1000)
-        
+
         assert result is None
 
     @pytest.mark.asyncio
@@ -69,10 +70,10 @@ class TestElevationDataProvider:
             ]
         }).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         locations = ["45.9,6.8", "45.9,6.85"]
         elevations = await elevation_provider._fetch_from_opentopodata(locations)
-        
+
         assert len(elevations) == 2
         assert elevations[0] == 1000
         assert elevations[1] == 1050
@@ -82,10 +83,10 @@ class TestElevationDataProvider:
     async def test_fetch_from_opentopodata_failure(self, mock_urlopen, elevation_provider):
         """Test Open Topo Data API failure handling."""
         mock_urlopen.side_effect = Exception("API Error")
-        
+
         locations = ["45.9,6.8", "45.9,6.85"]
         elevations = await elevation_provider._fetch_from_opentopodata(locations)
-        
+
         assert elevations is None
 
     @pytest.mark.asyncio
@@ -99,10 +100,10 @@ class TestElevationDataProvider:
             ]
         }).encode()
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         locations = ["45.9,6.8", "45.9,6.85"]
         elevations = await elevation_provider._fetch_from_openelevation(locations)
-        
+
         assert len(elevations) == 2
         assert elevations[0] == 1000
         assert elevations[1] == 1050
@@ -112,23 +113,23 @@ class TestElevationDataProvider:
     async def test_fetch_from_openelevation_failure(self, mock_urlopen, elevation_provider):
         """Test Open Elevation API failure handling."""
         mock_urlopen.side_effect = Exception("API Error")
-        
+
         locations = ["45.9,6.8", "45.9,6.85"]
         elevations = await elevation_provider._fetch_from_openelevation(locations)
-        
+
         assert elevations is None
 
     def test_cache_functionality(self, elevation_provider):
         """Test caching mechanism."""
         cache_key = "test_key"
         test_data = [1000, 1050, 1020, 1070]
-        
+
         # Test cache miss
         assert elevation_provider.cache.get(cache_key) is None
-        
+
         # Test cache set
         elevation_provider.cache[cache_key] = test_data
-        
+
         # Test cache hit
         cached_data = elevation_provider.cache.get(cache_key)
         assert cached_data == test_data

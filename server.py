@@ -64,7 +64,9 @@ class ElevationMCPAgent:
         """Fetch elevation data for a grid around resort coordinates"""
         cache_key = f"{resort_coords['lat']},{resort_coords['lon']},{resolution},{area_size}"
 
+        print(f"🔍 MCP Agent: Checking cache for key: {cache_key}")
         if cache_key in self.cache:
+            print("💾 Cache hit! Returning cached elevation data")
             return self.cache[cache_key]
 
         try:
@@ -74,6 +76,9 @@ class ElevationMCPAgent:
                 111000 * abs(resort_coords["lat"]) * 0.017453
             )  # Adjust for latitude
 
+            print(f"🗺️ MCP Agent: Generating {resolution}x{resolution} grid ({resolution*resolution} points)")
+            print(f"📐 Grid bounds: lat_range={lat_range:.6f}°, lon_range={lon_range:.6f}°")
+
             locations = []
             for i in range(resolution):
                 for j in range(resolution):
@@ -82,20 +87,25 @@ class ElevationMCPAgent:
                     locations.append(f"{lat},{lon}")
 
             # Try Open Topo Data first (more reliable for ski areas)
+            print(f"🌐 MCP Agent: Trying Open Topo Data API first ({len(locations)} locations)")
             elevation_data = self._fetch_from_opentopodata(locations, "srtm30m")
 
             if not elevation_data:
-                # Fallback to Open Elevation
+                print("⚠️ Open Topo Data failed, falling back to Open Elevation API")
                 elevation_data = self._fetch_from_openelevation(locations)
+            else:
+                print("✅ Open Topo Data succeeded")
 
             if elevation_data:
+                print("💾 Caching elevation data for future requests")
                 self.cache[cache_key] = elevation_data
                 return elevation_data
 
+            print("❌ All elevation data sources failed")
             return None
 
         except Exception as e:
-            print(f"MCP Agent error: {e}")
+            print(f"💥 MCP Agent error in fetch_elevation_grid: {e}")
             return None
 
     def _fetch_from_opentopodata(self, locations, dataset="srtm30m"):
@@ -105,27 +115,47 @@ class ElevationMCPAgent:
             batch_size = self.data_sources["opentopodata"]["max_locations"]
             all_elevations = []
 
+            print(f"🌍 Open Topo Data: Processing {len(locations)} locations in batches of {batch_size}")
+
             for i in range(0, len(locations), batch_size):
                 batch = locations[i : i + batch_size]
                 locations_str = "|".join(batch)
+                batch_num = (i // batch_size) + 1
+                total_batches = (len(locations) + batch_size - 1) // batch_size
 
                 url = f"{self.data_sources['opentopodata']['base_url']}/{dataset}?locations={locations_str}"
+                print(f"📡 API Call {batch_num}/{total_batches}: {len(batch)} locations to {dataset}")
 
                 with urllib.request.urlopen(url, timeout=10) as response:
                     data = json.loads(response.read().decode())
 
+                    print(f"📊 API Response: status={data.get('status')}, results={len(data.get('results', []))}")
+
                     if data.get("status") == "OK":
+                        batch_elevations = []
                         for result in data.get("results", []):
                             elevation = result.get("elevation")
                             if elevation is not None:
                                 all_elevations.append(float(elevation))
+                                batch_elevations.append(float(elevation))
                             else:
                                 all_elevations.append(0.0)
+                                batch_elevations.append(0.0)
 
-            return all_elevations if all_elevations else None
+                        if batch_elevations:
+                            min_elev = min(batch_elevations)
+                            max_elev = max(batch_elevations)
+                            print(f"📈 Batch elevation range: {min_elev:.1f}m - {max_elev:.1f}m")
+
+            if all_elevations:
+                print(f"✅ Open Topo Data: Successfully fetched {len(all_elevations)} elevation points")
+                return all_elevations
+            else:
+                print("❌ Open Topo Data: No elevation data received")
+                return None
 
         except Exception as e:
-            print(f"Open Topo Data error: {e}")
+            print(f"💥 Open Topo Data API error: {e}")
             return None
 
     def _fetch_from_openelevation(self, locations):
@@ -135,26 +165,46 @@ class ElevationMCPAgent:
             batch_size = self.data_sources["openelevation"]["max_locations"]
             all_elevations = []
 
+            print(f"🏔️ Open Elevation: Processing {len(locations)} locations in batches of {batch_size}")
+
             for i in range(0, len(locations), batch_size):
                 batch = locations[i : i + batch_size]
                 locations_str = "|".join(batch)
+                batch_num = (i // batch_size) + 1
+                total_batches = (len(locations) + batch_size - 1) // batch_size
 
                 url = f"{self.data_sources['openelevation']['base_url']}?locations={locations_str}"
+                print(f"📡 API Call {batch_num}/{total_batches}: {len(batch)} locations")
 
                 with urllib.request.urlopen(url, timeout=10) as response:
                     data = json.loads(response.read().decode())
 
+                    print(f"📊 API Response: {len(data.get('results', []))} results")
+
+                    batch_elevations = []
                     for result in data.get("results", []):
                         elevation = result.get("elevation")
                         if elevation is not None:
                             all_elevations.append(float(elevation))
+                            batch_elevations.append(float(elevation))
                         else:
                             all_elevations.append(0.0)
+                            batch_elevations.append(0.0)
 
-            return all_elevations if all_elevations else None
+                    if batch_elevations:
+                        min_elev = min(batch_elevations)
+                        max_elev = max(batch_elevations)
+                        print(f"📈 Batch elevation range: {min_elev:.1f}m - {max_elev:.1f}m")
+
+            if all_elevations:
+                print(f"✅ Open Elevation: Successfully fetched {len(all_elevations)} elevation points")
+                return all_elevations
+            else:
+                print("❌ Open Elevation: No elevation data received")
+                return None
 
         except Exception as e:
-            print(f"Open Elevation error: {e}")
+            print(f"💥 Open Elevation API error: {e}")
             return None
 
 
@@ -181,6 +231,14 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             resolution = int(params.get("resolution", ["64"])[0])
             area_size = int(params.get("area_size", ["2000"])[0])
 
+            # Enforce maximum resolution to prevent API rate limiting and URI length issues
+            if resolution > 32:
+                print(f"⚠️ Resolution {resolution} too high, capping at 32 to prevent API issues")
+                resolution = 32
+
+            print(f"🌐 HTTP Request: /api/elevation?resort={resort}&resolution={resolution}&area_size={area_size}")
+            print(f"📊 Parameters: Resort={resort}, Resolution={resolution}x{resolution} ({resolution*resolution} points), Area={area_size}m")
+
             # Resort coordinates
             resort_coords = {
                 "chamonix": {"lat": 45.9237, "lon": 6.8694, "name": "Chamonix, France"},
@@ -195,6 +253,7 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             print(f"🗺️ MCP Agent fetching elevation data for {resort_coords[resort]['name']}")
+            print(f"📍 Coordinates: {resort_coords[resort]['lat']}, {resort_coords[resort]['lon']}")
 
             # Fetch elevation data via MCP agent
             elevation_data = self.elevation_agent.fetch_elevation_grid(
@@ -210,7 +269,10 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     "elevation_data": elevation_data,
                     "source": "MCP Agent (Real Topographical Data)",
                 }
+                min_elev = min(elevation_data)
+                max_elev = max(elevation_data)
                 print(f"✅ Successfully fetched {len(elevation_data)} elevation points")
+                print(f"📈 Elevation range: {min_elev:.1f}m - {max_elev:.1f}m (vertical drop: {max_elev-min_elev:.1f}m)")
             else:
                 response = {
                     "status": "error",
@@ -223,10 +285,14 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(response).encode())
+            response_json = json.dumps(response)
+            self.wfile.write(response_json.encode())
+            print(f"📤 HTTP Response: {len(response_json)} bytes sent")
+            print("-" * 60)
 
         except Exception as e:
-            print(f"Error handling elevation request: {e}")
+            print(f"💥 Error handling elevation request: {e}")
+            print("-" * 60)
             self.send_error(500, str(e))
 
     def end_headers(self):
@@ -234,6 +300,10 @@ class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "*")
+        # Prevent caching to ensure fresh JS files
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         super().end_headers()
 
     def log_message(self, format, *args):

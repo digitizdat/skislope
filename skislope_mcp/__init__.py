@@ -14,7 +14,8 @@ __version__ = "1.0.0"
 __author__ = "Ski Terrain Rendering Team"
 
 # Import main agents for easy access
-from .elevation.server import ElevationDataProvider, server as elevation_server
+from .elevation.server import ElevationDataProvider
+from .elevation.server import server as elevation_server
 
 __all__ = [
     "ElevationDataProvider",

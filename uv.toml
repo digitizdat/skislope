@@ -1,0 +1,15 @@
+# UV configuration for better Python dependency management
+
+# Virtual environment settings
+python-preference = "only-managed"
+
+# Package resolution and installation
+resolution = "highest"
+prerelease = "disallow"
+compile-bytecode = true
+
+# Cache settings
+cache-dir = ".uv-cache"
+
+# Environment isolation
+no-build-isolation = false

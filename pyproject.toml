@@ -1,9 +1,9 @@
 [project]
-name = "ski2"
+name = "skislope"
 version = "0.1.0"
 description = "3D Alpine Ski Terrain Rendering System with Real Topographical Data"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Ski Terrain Rendering Team"},
 ]
@@ -11,7 +11,6 @@ keywords = ["ski", "terrain", "3d-rendering", "mcp", "topography", "alpine"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -21,8 +20,12 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    # MCP SDK is optional - project includes mock classes for development
-    # "mcp>=1.0.0",
+    # Core runtime dependencies
+    "httpx>=0.25.0",
+    "pydantic>=2.5.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "click>=8.2.1",
 ]
 
 [project.optional-dependencies]
@@ -31,22 +34,27 @@ dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-mock>=3.10.0",
+    "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
+    "black>=23.0.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
 ]
 
-# JavaScript testing dependencies
-js-test = [
-    "nodejs>=18.0.0",  # Node.js for running Jest
-]
-
-# Full MCP functionality (optional)
+# MCP functionality (required for MCP server)
 mcp = [
-    "mcp>=1.0.0",
+    "mcp>=1.14.0",
+]
+
+# Performance and monitoring
+perf = [
+    "memory-profiler>=0.61.0",
+    "py-spy>=0.3.14",
 ]
 
 # All optional dependencies
 all = [
-    "ski2[dev,mcp]",
+    "skislope[dev,mcp,perf]",
 ]
 
 [project.urls]
@@ -56,7 +64,12 @@ Documentation = "https://github.com/your-org/ski2/blob/main/README.md"
 "Bug Tracker" = "https://github.com/your-org/ski2/issues"
 
 [project.scripts]
-ski-elevation-server = "mcp.elevation.server:main"
+skislope-elevation-server = "skislope_mcp.elevation.server:main"
+skislope-http-server = "server:main"
+
+[tool.setuptools.packages.find]
+include = ["skislope_mcp*"]
+exclude = ["js*", "node_modules*", "tests*"]
 
 [tool.black]
 line-length = 100
@@ -83,7 +96,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["ski2"]
+known-first-party = ["skislope", "mcp"]
 
 [tool.ruff.format]
 quote-style = "double"

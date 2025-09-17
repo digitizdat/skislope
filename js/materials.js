@@ -7,7 +7,6 @@ class MaterialSystem {
     }
     
     createProceduralTextures() {
-        // Create snow texture
         this.textures.snow = this.createSnowTexture();
         this.textures.snowNormal = this.createSnowNormalMap();
         
@@ -312,8 +311,13 @@ class MaterialSystem {
     }
     
     // Create a blended material based on terrain properties
-    createBlendedMaterial(heightData, resolution, terrainSize, maxHeight) {
+    createBlendedMaterial(_heightData, _resolution, _terrainSize, _maxHeight) {
         // For now, return the base material - we could implement texture splatting here
         return this.materials.powder;
     }
+}
+
+// Expose globally for browser usage
+if (typeof window !== 'undefined') {
+  window.MaterialSystem = MaterialSystem;
 }

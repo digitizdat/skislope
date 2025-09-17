@@ -165,7 +165,7 @@ class TopographyDataLoader {
     }
     
     // Legacy method - now handled by MCP Agent
-    async queryUSGSElevation(lon, lat) {
+    async queryUSGSElevation(_lon, _lat) {
         // This method is deprecated in favor of MCP Agent
         // Kept for compatibility but should not be called directly
         console.warn('Direct USGS queries are deprecated. Use MCP Agent instead.');
@@ -173,7 +173,7 @@ class TopographyDataLoader {
     }
     
     // Interpolate elevation between known points
-    interpolateElevation(x, z, elevationPoints, resolution) {
+    interpolateElevation(x, z, elevationPoints, _resolution) {
         if (elevationPoints.length === 0) return 0;
         
         // Find closest elevation points and interpolate
@@ -224,7 +224,7 @@ class TopographyDataLoader {
     }
     
     // Generate synthetic elevation data based on real resort characteristics
-    async generateSyntheticElevationData(resort, resolution, areaSize) {
+    async generateSyntheticElevationData(resort, resolution, _areaSize) {
         console.log(`Generating synthetic elevation data for ${resort.name}`);
         
         const elevationData = new Float32Array(resolution * resolution);
@@ -291,4 +291,9 @@ class TopographyDataLoader {
     clearCache() {
         this.cache.clear();
     }
+}
+
+// Expose globally for browser usage
+if (typeof window !== 'undefined') {
+    window.TopographyDataLoader = TopographyDataLoader;
 }

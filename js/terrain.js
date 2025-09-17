@@ -129,13 +129,14 @@ class TerrainRenderer {
                     }
                     break;
                     
-                case 'bowls':
+                case 'bowls': {
                     // Natural bowl formations
                     const bowlDist = Math.sqrt(x * x + (z + 0.3) * (z + 0.3));
                     if (bowlDist < 0.3) {
                         featureHeight += -0.1 * (1 - bowlDist / 0.3);
                     }
                     break;
+                }
                     
                 case 'moguls':
                     // Mogul field in lower sections
@@ -151,13 +152,14 @@ class TerrainRenderer {
                     }
                     break;
                     
-                case 'crevasses':
+                case 'crevasses': {
                     // Glacier crevasses - use deterministic placement
                     const crevHash = Math.sin(x * 47.3 + z * 23.7) * 0.5 + 0.5;
                     if (crevHash < 0.05 && z < -0.3) {
                         featureHeight += -0.2;
                     }
                     break;
+                }
             }
         });
         
@@ -173,7 +175,7 @@ class TerrainRenderer {
         for (let i = 0; i < 3; i++) {
             const nx = x * frequency;
             const nz = z * frequency;
-            noise += amplitude * (Math.sin(nx * 3.14159) * Math.cos(nz * 3.14159) + 
+            noise += amplitude * (Math.sin(nx * Math.PI) * Math.cos(nz * Math.PI) +
                                 Math.sin(nx * 2.7 + 1.3) * Math.cos(nz * 2.7 + 2.1));
             amplitude *= 0.6;
             frequency *= 1.8;
@@ -249,7 +251,7 @@ class TerrainRenderer {
     
     addAdvancedMaterials() {
         const colors = [];
-        const uvs = [];
+        const _uvs = [];
         const vertices = this.terrainGeometry.attributes.position.array;
         const normals = this.terrainGeometry.attributes.normal.array;
         
@@ -259,9 +261,9 @@ class TerrainRenderer {
             
             // Calculate slope from normal
             const normalIndex = i;
-            const nx = normals[normalIndex];
+            const _nx = normals[normalIndex];
             const ny = normals[normalIndex + 1];
-            const nz = normals[normalIndex + 2];
+            const _nz = normals[normalIndex + 2];
             const slope = Math.acos(ny); // Angle from vertical
             
             // Blend materials based on height and slope
@@ -309,11 +311,11 @@ class TerrainRenderer {
     
     clearTerrainObjects(scene) {
         // Remove existing trees
-        this.trees.forEach(tree => scene.remove(tree));
+        this.trees.forEach((tree) => { scene.remove(tree); });
         this.trees = [];
         
         // Remove existing rocks
-        this.rocks.forEach(rock => scene.remove(rock));
+        this.rocks.forEach((rock) => { scene.remove(rock); });
         this.rocks = [];
         
         // Remove ski lift

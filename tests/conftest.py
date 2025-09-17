@@ -2,12 +2,10 @@
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, List, Any
 
 import pytest
 
-from mcp.elevation.server import ElevationDataProvider, server
+from skislope_mcp.elevation.server import ElevationDataProvider, server
 
 
 @pytest.fixture
@@ -58,18 +56,18 @@ def elevation_provider(mock_ski_resort_data):
 @pytest.fixture
 def mock_http_response():
     """Mock HTTP response for external API calls."""
-    
+
     class MockResponse:
         def __init__(self, json_data, status_code=200):
             self.json_data = json_data
             self.status_code = status_code
-            
+
         def read(self):
             return json.dumps(self.json_data).encode()
-            
+
         def getcode(self):
             return self.status_code
-    
+
     return MockResponse
 
 

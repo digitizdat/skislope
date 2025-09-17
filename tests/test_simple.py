@@ -1,7 +1,10 @@
 """Simple functional tests for MCP elevation server."""
 
+import numbers
+
 import pytest
-from mcp.elevation.server import ElevationDataProvider, elevation_provider
+
+from skislope_mcp.elevation.server import ElevationDataProvider, elevation_provider
 
 
 class TestSimpleFunctionality:
@@ -19,29 +22,29 @@ class TestSimpleFunctionality:
     def test_ski_resort_data_structure(self):
         """Test ski resort data has expected structure."""
         provider = ElevationDataProvider()
-        
-        for resort_key, resort_data in provider.ski_resorts.items():
+
+        for _resort_key, resort_data in provider.ski_resorts.items():
             assert "name" in resort_data
             assert "country" in resort_data
             assert "lat" in resort_data
             assert "lon" in resort_data
             assert "base_elevation" in resort_data
             assert "peak_elevation" in resort_data
-            assert isinstance(resort_data["lat"], (int, float))
-            assert isinstance(resort_data["lon"], (int, float))
+            assert isinstance(resort_data["lat"], numbers.Real)
+            assert isinstance(resort_data["lon"], numbers.Real)
 
     def test_data_sources_configuration(self):
         """Test data sources are properly configured."""
         provider = ElevationDataProvider()
-        
+
         assert "opentopodata" in provider.data_sources
         assert "openelevation" in provider.data_sources
-        
+
         otd = provider.data_sources["opentopodata"]
         assert "base_url" in otd
         assert "max_locations" in otd
         assert otd["max_locations"] == 100
-        
+
         oe = provider.data_sources["openelevation"]
         assert "base_url" in oe
         assert "max_locations" in oe
@@ -56,15 +59,15 @@ class TestSimpleFunctionality:
     def test_cache_basic_operations(self):
         """Test basic cache operations."""
         provider = ElevationDataProvider()
-        
+
         # Test empty cache
         assert len(provider.cache) == 0
-        
+
         # Test adding to cache
         test_key = "test_key"
         test_data = [1000, 1100, 1200]
         provider.cache[test_key] = test_data
-        
+
         # Test retrieving from cache
         assert provider.cache[test_key] == test_data
         assert len(provider.cache) == 1
@@ -79,32 +82,32 @@ class TestSimpleFunctionality:
     def test_ski_resort_coordinates_validity(self):
         """Test that ski resort coordinates are valid."""
         provider = ElevationDataProvider()
-        
+
         for resort_key, resort_data in provider.ski_resorts.items():
             lat = resort_data["lat"]
             lon = resort_data["lon"]
-            
+
             # Valid latitude range: -90 to 90
             assert -90 <= lat <= 90, f"Invalid latitude for {resort_key}: {lat}"
-            
+
             # Valid longitude range: -180 to 180
             assert -180 <= lon <= 180, f"Invalid longitude for {resort_key}: {lon}"
 
     def test_elevation_data_validity(self):
         """Test that elevation data is reasonable."""
         provider = ElevationDataProvider()
-        
+
         for resort_key, resort_data in provider.ski_resorts.items():
             base_elev = resort_data["base_elevation"]
             peak_elev = resort_data["peak_elevation"]
-            
+
             # Base elevation should be positive and reasonable
             assert base_elev > 0, f"Invalid base elevation for {resort_key}: {base_elev}"
             assert base_elev < 10000, f"Unreasonably high base elevation for {resort_key}: {base_elev}"
-            
+
             # Peak should be higher than base
             assert peak_elev > base_elev, f"Peak elevation not higher than base for {resort_key}"
-            
+
             # Vertical drop should match
             expected_drop = peak_elev - base_elev
             actual_drop = resort_data["vertical_drop"]

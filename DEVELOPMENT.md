@@ -24,34 +24,59 @@ Frontend (JavaScript)     Backend (Python)        External APIs
 - **HTML5 Canvas**: 2D UI elements and overlays
 
 ### Backend
-- **Python 3.8+**: MCP server implementation
+- **Python 3.11+**: MCP server implementation
+- **uv**: Ultra-fast Python package manager and virtual environment
 - **FastAPI/HTTP**: REST API for elevation data proxy
 - **MCP Protocol**: Standardized AI agent communication
 - **Real Topographical APIs**: USGS, Open Topo Data, Mapbox
 
 ### Development Tools
+- **uv**: Python dependency management and virtual environments
 - **Biome**: JavaScript linting, formatting, and static analysis
 - **Jest**: Unit and integration testing
 - **Playwright**: End-to-end browser testing
 - **Lefthook**: Git hooks for code quality and commit validation
 - **Commitlint**: Conventional Commits enforcement
+- **pytest**: Python testing with coverage reporting
+- **ruff**: Fast Python linter and formatter
+- **mypy**: Static type checking
 
 ## Development Workflow
 
-### 1. Initial Setup
+### 1. Initial Setup with uv
+
+#### Quick Setup (Recommended)
 ```bash
 # Clone repository
 git clone <repository-url>
-cd ski2
+cd skislope
 
-# Install dependencies
+# Run automated setup script
+make setup
+```
+
+#### Manual Setup
+```bash
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment with Python 3.11
+uv venv --python 3.11
+
+# Activate virtual environment
+source .venv/bin/activate
+
+# Install project with development dependencies
+uv pip install -e ".[dev,mcp]"
+
+# Install JavaScript dependencies
 npm install
 
 # Set up git hooks
-npm run prepare  # Installs Lefthook hooks
+npx lefthook install  # Installs Lefthook hooks
 
 # Verify setup
-npm run check
+make check
 ```
 
 ### 2. Code Quality Standards

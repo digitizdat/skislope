@@ -140,104 +140,290 @@ class MCPElevationClient {
     }
 
     /**
-     * Bridge MCP calls to HTTP server (temporary solution for browser compatibility)
+     * Call MCP server via HTTP JSON-RPC (proper MCP protocol over HTTP)
      */
     async bridgeToHttpServer(toolName, args) {
-        if (toolName === 'get_elevation_data' || toolName === 'fetch_elevation_grid') {
-            const { resort_key, resolution = 128, area_size = 2000 } = args;
+        console.log(`🌐 Bridging to HTTP server: ${toolName}`, args);
+        
+        try {
+            // Extract parameters from args
+            const resortKey = args.resort || args.resort_key || 'whistler';
+            const resolution = args.resolution || 16;
+            const areaSize = args.area_size || args.areaSize || 1000;
+            const requestId = `req_${Date.now()}_${Math.floor(Math.random()*1e6)}`; // Generate client-side request ID
             
-            // Call our existing HTTP endpoint
-            const url = `/api/elevation?resort=${resort_key}&resolution=${resolution}&area_size=${area_size}`;
-            const response = await fetch(url);
+            console.log(`📡 Calling MCP tool with params:`, {
+                resort_key: resortKey,
+                resolution: resolution,
+                area_size: areaSize,
+                request_id: requestId
+            });
+            
+            // Show initial progress
+            this.showProgress(0, 'Starting elevation data fetch...');
+            // Start progress polling BEFORE the POST so the user sees updates during the long-running request
+            if (!this._progressAbort) this._progressAbort = {};
+            this._progressAbort[requestId] = false;
+            const _polling = this.pollProgress(requestId);
+            
+            // Make JSON-RPC call to MCP server
+            const response = await fetch('http://localhost:8081/mcp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'tools/call',
+                    params: {
+                        name: 'fetch_elevation_grid',
+                        arguments: {
+                            resort_key: resortKey,
+                            resolution: resolution,
+                            area_size: areaSize,
+                            request_id: requestId
+                        }
+                    }
+                })
+            });
+            
+            if (!response.ok) {
+                this.hideProgress();
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const jsonRpcResponse = await response.json();
+            console.log('📥 MCP JSON-RPC Response:', jsonRpcResponse);
+            
+            if (jsonRpcResponse.error) {
+                this.hideProgress();
+                throw new Error(`MCP Error: ${jsonRpcResponse.error.message}`);
+            }
+            
+            // Extract result from JSON-RPC response
+            const result = jsonRpcResponse.result;
+            if (result?.content?.[0]) {
+                const elevationData = JSON.parse(result.content[0].text);
+                console.log('✅ Parsed elevation data:', elevationData);
+                
+                // Stop polling as operation is complete (server response received)
+                this._progressAbort[requestId] = true;
+                // Await one tick so any in-flight poll can resolve gracefully
+                await Promise.resolve();
+                
+                this.hideProgress();
+                
+                if (elevationData?.elevation_data) {
+                    console.log(`📊 Received ${elevationData.elevation_data.length} elevation points`);
+                    
+                    // Normalize elevation data to expected format
+                    return {
+                        elevationData: elevationData.elevation_data,
+                        metadata: {
+                            resort: elevationData.resort,
+                            resolution: elevationData.resolution,
+                            area_size: elevationData.area_size,
+                            source: elevationData.source,
+                            request_id: elevationData.request_id || requestId
+                        }
+                    };
+                } else {
+                    console.warn('⚠️ No elevation_data found in response');
+                    return null;
+                }
+            } else {
+                this.hideProgress();
+                console.warn('⚠️ Invalid response structure');
+                return null;
+            }
+            
+        } catch (error) {
+            this.hideProgress();
+            console.error('❌ Bridge to HTTP server failed:', error);
+            
+            // Fallback to resort info if elevation fetch fails
+            try {
+                return await this.handleResortInfo(args.resort || args.resort_key || 'whistler');
+            } catch (fallbackError) {
+                console.error('❌ Fallback also failed:', fallbackError);
+                return null;
+            }
+        }
+    }
+
+    async pollProgress(requestId) {
+        console.log(`📊 Starting progress polling for request: ${requestId}`);
+        
+        const pollInterval = 500; // Poll every 500ms
+        const maxPolls = 600; // Allow up to 5 minutes of polling
+        let pollCount = 0;
+        const warmupMs = 5000; // During warmup, treat non-OK as not-yet-ready and retry
+        const startTs = Date.now();
+        
+        return new Promise((resolve) => {
+            const poll = async () => {
+                try {
+                    if (this._progressAbort?.[requestId]) {
+                        console.log(`🛑 Progress polling aborted for ${requestId}`);
+                        return resolve();
+                    }
+                    const response = await fetch(`http://localhost:8081/progress/${requestId}`);
+                    
+                    if (response.ok) {
+                        const progressData = await response.json();
+                        console.log(`📈 Progress update:`, progressData);
+                        
+                        this.showProgress(
+                            progressData.progress,
+                            progressData.message || 'Processing...',
+                            progressData.current,
+                            progressData.total
+                        );
+                        
+                        // Continue polling if not complete
+                        if (progressData.progress < 100 && pollCount < maxPolls && !(this._progressAbort?.[requestId])) {
+                            pollCount++;
+                            setTimeout(poll, pollInterval);
+                        } else {
+                            resolve();
+                        }
+                    } else {
+                        // Non-OK response; keep retrying unless aborted or out of time
+                        console.log(`ℹ️ Progress endpoint non-OK status ${response.status}; retrying...`);
+                        if (pollCount < maxPolls && !(this._progressAbort?.[requestId])) {
+                            pollCount++;
+                            setTimeout(poll, (Date.now() - startTs) < warmupMs ? 250 : pollInterval);
+                        } else {
+                            resolve();
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Progress polling error:`, error);
+                    if (pollCount < maxPolls && !(this._progressAbort?.[requestId])) {
+                        pollCount++;
+                        setTimeout(poll, pollInterval);
+                    } else {
+                        resolve();
+                    }
+                }
+            };
+            
+            // Slight delay to reduce race with server-side initialization
+            setTimeout(poll, 200);
+        });
+    }
+    
+    showProgress(percentage, message = '', current = null, total = null) {
+        // Create or update progress indicator
+        let progressContainer = document.getElementById('elevation-progress');
+        
+        if (!progressContainer) {
+            progressContainer = document.createElement('div');
+            progressContainer.id = 'elevation-progress';
+            progressContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+                font-family: monospace;
+                z-index: 10000;
+                min-width: 300px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            `;
+            document.body.appendChild(progressContainer);
+        }
+        
+        const progressText = current && total ? 
+            `${current}/${total} (${percentage.toFixed(1)}%)` : 
+            `${percentage.toFixed(1)}%`;
+        
+        progressContainer.innerHTML = `
+            <div style="margin-bottom: 8px; font-weight: bold;">🏔️ Fetching Elevation Data</div>
+            <div style="background: #333; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                <div style="background: linear-gradient(90deg, #4CAF50, #8BC34A); height: 20px; width: ${percentage}%; transition: width 0.3s ease;"></div>
+            </div>
+            <div style="font-size: 12px; opacity: 0.8;">${progressText}</div>
+            <div style="font-size: 11px; opacity: 0.6; margin-top: 4px;">${message}</div>
+        `;
+    }
+    
+    hideProgress() {
+        const progressContainer = document.getElementById('elevation-progress');
+        if (progressContainer) {
+            progressContainer.remove();
+        }
+    }
+
+    /**
+     * Handle resort info requests (fallback for non-elevation tools)
+     */
+    async handleResortInfo(resortKey) {
+        console.log(`🏔️ Fetching resort info for: ${resortKey}`);
+        
+        try {
+            const response = await fetch('http://localhost:8081/mcp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 2,
+                    method: 'tools/call',
+                    params: {
+                        name: 'get_resort_info',
+                        arguments: {
+                            resort_key: resortKey
+                        }
+                    }
+                })
+            });
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
-            const data = await response.json();
+            const jsonRpcResponse = await response.json();
             
-            if (data.status === 'success') {
-                return {
-                    success: true,
-                    resort: data.resort,
-                    resolution: data.resolution,
-                    area_size: data.area_size,
-                    elevation_data: data.elevation_data,
-                    data_points: data.elevation_data.length,
-                    source: 'MCP Elevation Server (via HTTP bridge)'
-                };
-            } else {
-                throw new Error(data.message || 'Failed to fetch elevation data');
+            if (jsonRpcResponse.error) {
+                throw new Error(`MCP Error: ${jsonRpcResponse.error.message}`);
             }
-        }
-        
-        if (toolName === 'get_resort_info') {
-            const { resort_key } = args;
             
-            // Return resort metadata (we have this locally)
-            const resortInfo = {
-                chamonix: {
-                    name: 'Chamonix-Mont-Blanc',
-                    country: 'France',
-                    lat: 45.9237,
-                    lon: 6.8694,
-                    base_elevation: 1035,
-                    peak_elevation: 3842,
-                    vertical_drop: 2807,
-                    terrain_type: 'glacial_alpine'
-                },
-                whistler: {
-                    name: 'Whistler Blackcomb',
-                    country: 'Canada',
-                    lat: 50.1163,
-                    lon: -122.9574,
-                    base_elevation: 652,
-                    peak_elevation: 2182,
-                    vertical_drop: 1530,
-                    terrain_type: 'coastal_range'
-                },
-                zermatt: {
-                    name: 'Zermatt Matterhorn',
-                    country: 'Switzerland',
-                    lat: 46.0207,
-                    lon: 7.7491,
-                    base_elevation: 1608,
-                    peak_elevation: 3883,
-                    vertical_drop: 2275,
-                    terrain_type: 'high_alpine'
-                },
-                stanton: {
-                    name: 'St. Anton am Arlberg',
-                    country: 'Austria',
-                    lat: 47.1333,
-                    lon: 10.2667,
-                    base_elevation: 1304,
-                    peak_elevation: 2811,
-                    vertical_drop: 1507,
-                    terrain_type: 'alpine_bowl'
-                },
-                valdisere: {
-                    name: "Val d'Isère",
-                    country: 'France',
-                    lat: 45.4489,
-                    lon: 6.9797,
-                    base_elevation: 1550,
-                    peak_elevation: 3456,
-                    vertical_drop: 1906,
-                    terrain_type: 'high_alpine'
-                }
-            };
+            const result = jsonRpcResponse.result;
+            if (result?.content?.[0]) {
+                const resortInfo = JSON.parse(result.content[0].text);
+                console.log('🏔️ Resort info:', resortInfo);
+                
+                // Generate synthetic elevation data based on resort info
+                const syntheticData = this.generateSyntheticElevation(resortInfo);
+                
+                return {
+                    elevationData: syntheticData,
+                    metadata: {
+                        resort: resortKey,
+                        source: 'Synthetic (Resort Info Fallback)',
+                        base_elevation: resortInfo.base_elevation,
+                        peak_elevation: resortInfo.peak_elevation
+                    }
+                };
+            }
             
-            return resortInfo[resort_key] || null;
+            return null;
+            
+        } catch (error) {
+            console.error('❌ Resort info fetch failed:', error);
+            return null;
         }
-        
-        throw new Error(`Unknown tool: ${toolName}`);
     }
 
     /**
      * Fetch elevation data for a ski resort using MCP protocol
      */
-    async fetchElevationData(resortKey, resolution = 128, areaSize = 2000) {
+    async fetchElevationData(resortKey, resolution = 16, areaSize = 1000) {
         try {
             if (!this.isInitialized) {
                 await this.initialize();
@@ -245,14 +431,14 @@ class MCPElevationClient {
             
             console.log(`🗺️ MCP Client fetching elevation data for ${resortKey}`);
             
-            // Call MCP tool to fetch elevation grid (matches actual MCP server tool name)
-            const result = await this.callTool('get_elevation_data', {
+            // Call MCP tool to fetch elevation grid via HTTP JSON-RPC
+            const result = await this.callTool('fetch_elevation_grid', {
                 resort_key: resortKey,
                 resolution: resolution,
                 area_size: areaSize
             });
             
-            if (result && result.elevation_data) {
+            if (result?.elevation_data) {
                 console.log(`✅ MCP Client received ${result.data_points} elevation points`);
                 
                 // Convert to normalized Float32Array for terrain rendering
@@ -319,9 +505,9 @@ class MCPElevationClient {
     }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
+  // Export for use in other modules (browser and Node/CommonJS safe)
+  if (typeof module !== 'undefined' && module.exports) {
     module.exports = MCPElevationClient;
-} else if (typeof window !== 'undefined') {
+  } else if (typeof window !== 'undefined') {
     window.MCPElevationClient = MCPElevationClient;
-}
+  }

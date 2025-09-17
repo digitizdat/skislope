@@ -225,9 +225,14 @@ class WeatherSystem {
     // Get current weather conditions for UI display
     getCurrentConditions() {
         return {
-            visibility: this.fog ? Math.round(this.fog.far) + 'm' : 'Unlimited',
-            lightLevel: Math.round(this.lighting.directionalLight.intensity * 100) + '%',
+            visibility: this.fog ? `${Math.round(this.fog.far)}m` : 'Unlimited',
+            lightLevel: `${Math.round(this.lighting.directionalLight.intensity * 100)}%`,
             precipitation: this.particles ? 'Snow' : 'None'
         };
     }
+}
+
+// Expose globally for browser usage
+if (typeof window !== 'undefined') {
+    window.WeatherSystem = WeatherSystem;
 }

@@ -290,7 +290,7 @@ describe('WeatherSystem', () => {
   describe('Weather Transitions', () => {
     test('smoothly transitions between weather states', () => {
       weatherSystem.setWeather('clear');
-      const clearVisibility = weatherSystem.visibility;
+      const _clearVisibility = weatherSystem.visibility;
       
       weatherSystem.transitionToWeather('foggy', 1.0); // 1 second transition
       

@@ -204,8 +204,8 @@ class SkiTerrainApp {
             cameraInfo.target.z
         );
         
-        document.getElementById('elevation').textContent = Math.round(elevation) + 'm';
-        document.getElementById('slope').textContent = Math.round(slope) + '°';
+        document.getElementById('elevation').textContent = `${Math.round(elevation)}m`;
+        document.getElementById('slope').textContent = `${Math.round(slope)}°`;
     }
     
     onWindowResize() {
